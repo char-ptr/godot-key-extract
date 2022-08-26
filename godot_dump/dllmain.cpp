@@ -49,8 +49,18 @@ char* ScanInternal(char* pattern,char * mask, char* begin, intptr_t size)
 
 
 
+void* find_rel_addr(char* nextins,uint32_t offset) {
+    char* mod = (char*)GetModuleHandleA(nullptr);
+    auto parta = (nextins - mod) + offset;
+    return mod + (uint32_t)parta;
+}
+void* find_rel_addr_lea(char* nextins, char* offset) {
+    uint32_t act_offset;
 
+    std::memcpy(&act_offset, (void*)(offset + 3), 4);
 
+    return find_rel_addr(nextins, act_offset);
+}
 
 void main_thread() {
     AllocConsole();
@@ -58,25 +68,47 @@ void main_thread() {
     freopen_s((FILE**)stdin,"CONIN$", "w", (FILE*)stdin);
 
     auto pog1 = GetModuleHandleA(nullptr);
-    
-    const char* load_byte_code_sig = "\x4C\x8D\x05\xCC\xCC\xCC\xCC\x0F\x1F\x40\x00";
 
-    auto pog = ScanInternal((char*)load_byte_code_sig, (char*)"xxx????xxxx", (char *)pog1, 0xfffffff);
+    const char* version_sig = "\x48\x8B\x4C\x24\x00\x48\x85\xC9\x74\x15\x8B\xC3\xF0\x0F\xC1\x41\x00\x83\xF8\x01\x75\x09\x0F\xB6\xD0\xE8\x00\x00\x00\x00\x90\x48\x8D\x15\x00\x00\x00\x00\x48\x8D\x4C\x24\x00\xE8\x00\x00\x00\x00\x90\x4C\x8D\x44\x24\x00\x48\x8B\xD7\x48\x8B\xC8\xE8\x00\x00\x00\x00\x90\x48\x8B\x4C\x24\x00\x48\x85\xC9\x74\x15\x8B\xC3\xF0\x0F\xC1\x41\x00\x83\xF8\x01\x75\x09\x0F\xB6\xD0\xE8\x00\x00\x00\x00\x90"
+        ;
+    const char* version_sig_mask = "xxxx?xxxxxxxxxxx?xxxxxxxxx????xxxx????xxxx?x????xxxxx?xxxxxxx????xxxxx?xxxxxxxxxxx?xxxxxxxxx????x";
 
-    uint32_t offset;
 
-    std::memcpy(&offset, (void*)(pog + 3), 4);
+    auto version_somewhere = ScanInternal((char*)version_sig, (char*)version_sig_mask, (char*)pog1, 0xfffffff);
 
-    void* next = (void*)((pog + 7) - (char *)pog1);
+    auto version_lea = version_somewhere + 31;
 
-    auto parta = (char*)next + offset;
-    void* location = reinterpret_cast<char*>(pog1) + (uint32_t)parta;
-    
-    std::cout << "key loc @ " << location << std::endl;
+
+    auto version_addr = (char*)find_rel_addr_lea(version_lea + 7, version_lea);
+
+    std::cout << "game version = " << version_addr << std::endl;
+
+    std::string_view ver(version_addr);
+
 
     uint8_t secretKey[32];
 
-    std::memcpy(&secretKey, location, 32);
+
+    if (ver.find("3.4") != std::string::npos) {
+
+        const char* lea_sig = "\x4C\x8B\xFF\x4C\x8D\x05\x00\x00\x00\x00";
+
+        auto lea = ScanInternal((char*)lea_sig, (char*)"xxxxxx????", (char*)pog1, 0xfffffff) + 3;
+
+        auto key_addr = (char*)find_rel_addr_lea(lea + 7, lea);
+
+        std::memcpy(&secretKey, key_addr, 32);
+    } else {//if (ver.find("3.6") != std::string::npos) { // best hope, i cba to check others rn
+
+        const char* lea_sig = "\x48\x8D\x05\x00\x00\x00\x00\x0F\xB6\x0C\x03";
+
+        auto lea = ScanInternal((char*)lea_sig, (char*)"xxx????xxxx", (char*)pog1, 0xfffffff);
+
+        auto key_addr = (char*)find_rel_addr_lea(lea + 7, lea);
+
+        std::memcpy(&secretKey, key_addr, 32);
+
+    } 
 
     std::cout << "key = ";
     for (int i = 0; i < 32; i++) {
