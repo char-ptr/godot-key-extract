@@ -30,3 +30,6 @@
 *.exe
 *.out
 *.app
+/godot_dump/x64/Debug
+/.vs/godot_dump
+/x64/Debug
