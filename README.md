@@ -13,4 +13,4 @@ examples of dll injectors:
 
 
 ## build
-clone the repo (git clone https://github.com/pozm/godot_key_extract.git) then open the visual studio workspace and then build either release or debug, probably doesn't matter.
+clone the repo (`git clone https://github.com/pozm/godot_key_extract.git`) then open the visual studio workspace and then build either release or debug, probably doesn't matter.
