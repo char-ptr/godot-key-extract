@@ -47,8 +47,6 @@ char* ScanInternal(char* pattern,char * mask, char* begin, intptr_t size)
     return match;
 }
 
-
-
 void* find_rel_addr(char* nextins,uint32_t offset) {
     char* mod = (char*)GetModuleHandleA(nullptr);
     auto parta = (nextins - mod) + offset;
@@ -64,8 +62,9 @@ void* find_rel_addr_lea(char* nextins, char* offset) {
 
 void main_thread() {
     AllocConsole();
-    freopen_s((FILE**)stdout,"CONOUT$", "w", (FILE*)stdout);
-    freopen_s((FILE**)stdin,"CONIN$", "w", (FILE*)stdin);
+    FILE* f;
+    freopen_s(&f,"CONOUT$", "w", (FILE*)stdout);
+    freopen_s(&f,"CONIN$", "r", (FILE*)stdin);
 
     auto pog1 = GetModuleHandleA(nullptr);
 
@@ -115,8 +114,10 @@ void main_thread() {
         std::cout << std::hex << (int) secretKey[i];
     }
     std::cout << std::dec << ";" << std::endl;
-    std::cin.get();
+    std::cout << "ok you can close me without killing main process now";
 
+    fclose(f);
+    FreeConsole();
 }
 
 BOOL APIENTRY DllMain( HMODULE hModule,
@@ -127,8 +128,9 @@ BOOL APIENTRY DllMain( HMODULE hModule,
     switch (ul_reason_for_call)
     {
     case DLL_PROCESS_ATTACH: {
-        std::thread pog(main_thread);
-        pog.detach();
+        std::thread mt(main_thread);
+        //main_thread();
+        mt.detach();
     }
     case DLL_THREAD_ATTACH:
     case DLL_THREAD_DETACH:
