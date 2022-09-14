@@ -2,6 +2,8 @@
 #include "pch.h"
 #include <thread>
 #include <iostream>
+#include <charconv>
+#include <algorithm>
 
 char* ScanBasic(char* pattern, char* mask, char* begin, intptr_t size)
 {
@@ -66,6 +68,7 @@ void main_thread() {
     freopen_s(&f,"CONOUT$", "w", (FILE*)stdout);
     freopen_s(&f,"CONIN$", "r", (FILE*)stdin);
 
+
     auto pog1 = GetModuleHandleA(nullptr);
 
     const char* version_sig = "\x48\x8B\x4C\x24\x00\x48\x85\xC9\x74\x15\x8B\xC3\xF0\x0F\xC1\x41\x00\x83\xF8\x01\x75\x09\x0F\xB6\xD0\xE8\x00\x00\x00\x00\x90\x48\x8D\x15\x00\x00\x00\x00\x48\x8D\x4C\x24\x00\xE8\x00\x00\x00\x00\x90\x4C\x8D\x44\x24\x00\x48\x8B\xD7\x48\x8B\xC8\xE8\x00\x00\x00\x00\x90\x48\x8B\x4C\x24\x00\x48\x85\xC9\x74\x15\x8B\xC3\xF0\x0F\xC1\x41\x00\x83\xF8\x01\x75\x09\x0F\xB6\xD0\xE8\x00\x00\x00\x00\x90"
@@ -82,13 +85,29 @@ void main_thread() {
 
     std::cout << "game version = " << version_addr << std::endl;
 
-    std::string_view ver(version_addr);
-
 
     uint8_t secretKey[32];
 
+    auto vera = std::string(version_addr);
+    std::remove(vera.begin(), vera.end(), '.');
+    int ver = 0;
+    auto version_n = std::from_chars(vera.data(), vera.data() + vera.size(), ver);
 
-    if (ver.find("3.4") != std::string::npos) {
+    //std::cout << "v = " << ver << "; e = " << vera << std::endl;
+
+    
+    if (ver > 344 || (ver < 100 && ver > 34)) {//if (ver.find("3.6") != std::string::npos) { // best hope, i cba to check others rn
+
+        const char* lea_sig = "\x48\x8D\x05\x00\x00\x00\x00\x0F\xB6\x00\x03";
+
+        auto lea = ScanInternal((char*)lea_sig, (char*)"xxx????xx?x", (char*)pog1, 0xfffffff);
+
+        auto key_addr = (char*)find_rel_addr_lea(lea + 7, lea);
+
+        std::memcpy(&secretKey, key_addr, 32);
+
+    } else if (ver <= 344) {
+        std::cout << "using 344\n";
 
         const char* lea_sig = "\x4C\x8B\xFF\x4C\x8D\x05\x00\x00\x00\x00";
 
@@ -97,17 +116,7 @@ void main_thread() {
         auto key_addr = (char*)find_rel_addr_lea(lea + 7, lea);
 
         std::memcpy(&secretKey, key_addr, 32);
-    } else {//if (ver.find("3.6") != std::string::npos) { // best hope, i cba to check others rn
-
-        const char* lea_sig = "\x48\x8D\x05\x00\x00\x00\x00\x0F\xB6\x0C\x03";
-
-        auto lea = ScanInternal((char*)lea_sig, (char*)"xxx????xxxx", (char*)pog1, 0xfffffff);
-
-        auto key_addr = (char*)find_rel_addr_lea(lea + 7, lea);
-
-        std::memcpy(&secretKey, key_addr, 32);
-
-    } 
+    }
 
     std::cout << "key = ";
     for (int i = 0; i < 32; i++) {
@@ -128,6 +137,7 @@ BOOL APIENTRY DllMain( HMODULE hModule,
     switch (ul_reason_for_call)
     {
     case DLL_PROCESS_ATTACH: {
+        DisableThreadLibraryCalls(GetModuleHandleA(nullptr));
         std::thread mt(main_thread);
         //main_thread();
         mt.detach();
