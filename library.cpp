@@ -1,3 +1,4 @@
+#include <iomanip>
 #include "library.h"
 #include "ModuleWrapper.h"
 // signature offset
@@ -41,7 +42,7 @@ void main_thread() {
 
             std::cout << "Secret key: ";
             for (auto i : secretKey) {
-                std::cout << std::hex << (int)i;
+                std::cout << std::setw(2) << std::setfill('0') << std::hex << (int)i;
             }
             std::cout << std::endl;
         }
