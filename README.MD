@@ -1,12 +1,32 @@
-## build
+## Build
 clone the repo (`git clone https://github.com/pozm/godot_key_extract.git`) then open the visual studio workspace and then build either release or debug, probably doesn't matter.
+## Example Output
+![image](https://user-images.githubusercontent.com/44528100/211037437-7ed49f67-68ba-4b62-b958-827f2289ca76.png)
 
+### How does this work?
+When you build a godot template with an encryption key set, the build tool (scons) will inline somewhere into the file. And so the key is in a random location pretty much every time you build.
 
-## how does this work?
-basically when you want to build with encryption you must first compile your own godot template with the aes script key stored as an env variable (this automatically gets embedded into executable via the buildsystem), so the key is generated and stored in some random space in the executable, we can retrieve this via two different ways: either while it's in memory or while it's out of. The latter is much more complex and requires a custom disassembler, which i cannot be bothered writing.
+We are still able to retrive this key though as it is obviously used to decrypt, encrypted scripts. and the place where it happens is in a function called `gdscript::load_byte_code`
 
-so for retriving this from memory, we can find where the key is used, and where else better to look than the load bytecode function? So within this function it checks if the script even needs to be decrypted (via a ext check), and if it does then it does some steps, but most importantly it reads the secret key. we can now open up our favourite static analsys program (for example ida) and find this function, there are many ways to find this function but probably the easiest is to just search for strings.
+![image](https://user-images.githubusercontent.com/44528100/211037537-f2b76cb7-2734-445a-a28d-c3bca404035d.png)
 
-Godot has a ton of macros and relies heavily on them for error handling, so we can easily find what we're looking for by searching just for "load_byte_code" and you will find the function we're looking for. now in the function it will do a ton of things, but the most important thing is loading the secret key. it does this with the opcode LEA, the function doesn't use it alot and it's pretty easy to tell which one is the secret key. so after we know the address of the instruction we can create a signature to it.
+#### Finding statically
+Thankfully it's really easy to find functions in ida, or any other modern static analysis program, as godot has verbose error logging. and we can abuse this to easily find the function.
 
-nd then in the dll we can use that signature to find the instruction while loaded in memory. after doing that all you need to do is read the instruction and calculate the offset. once done you should have the address to where the secret key is loaded in memory and you can just print it out.
+![image](https://user-images.githubusercontent.com/44528100/211037616-76395bda-2fbf-43a5-81a9-a7da6374e0cb.png)
+
+In ida, im able to go to where it is in rdata, and then find references as such:
+
+![image](https://user-images.githubusercontent.com/44528100/211037662-501c041d-48e4-4813-9be7-bf4bead287df.png)
+
+So now we've located the function which uses the secret key, all that's left to do is find where it's loaded (I recommend using graph view for next part). We can pretty easily find where it's loaded, although varies depending if the template was built in release or debug mode. Generally if it was built in release mode the key will be loaded near the beginning of the function, else in debug it will be right before it increments a for loop. We're looking for an instruction called `lea` (Load effective address) which takes a offset and loads it into a register. since our encryption key is pretty much static, it doesn't get passed in like a variable or what ever, it will always have a static offset. which makes it very easy to find. pretty much all the other `lea` instructions will load from a offset of a register.
+
+If you have debug symbols it is extremely easy to find it as it will just be called `script_encryption_key`
+
+![image](https://user-images.githubusercontent.com/44528100/211037804-c7270729-cdca-4f5d-8290-be613ef312c4.png)
+
+If you do not have debug symbols it will be a bit harder to find, but still pretty trivial, it should look generally like:
+
+![image](https://user-images.githubusercontent.com/44528100/211037865-16e58a09-74e8-43ae-a15c-fa27c123e6e7.png)
+
+Once you have found the instruction, you should just be able to follow the offset, and read the bytes.
