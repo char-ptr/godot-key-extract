@@ -1,0 +1,42 @@
+name: Godot Incompatibility
+
+description: "Please file a separate report for each issue"
+
+title: "godot <version> incompat"
+
+labels: ["godot","bug","version-brick"]
+
+assignees: 
+
+  - 'pozm'
+
+body:
+  - type: input
+    id: offset
+    attributes:
+      label: "What offset?"
+      description: "the number in parentheses after found"
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: "What is the exact godot version?"
+      description: "including stable, stable unoffical and custom etc\n You can retrive this a few different ways, the primary way is to run the exe with --version, or you can find it in ida."
+    validations:
+      required: true
+  - type: input
+    id: source
+    attributes:
+      label: "Link to game"
+      description: "This is so that i can find signatures for the version (it's annoying to build versions of godot)"
+    validations:
+      required: true
+  - type: textarea
+    id: ss
+    attributes:
+      label: "Please provide a screenshot of the console below"
+      description: "Helps to get an understanding of what went wrong"
+    validations:
+      required: true
+
