@@ -1,3 +1,6 @@
+## Notice of archival
+I have rebuilt this program to be fully external, meaning you don't need a dll and it has a gui to simply choose programs from. That version will continue to recieve updates as godot versions roll out
+you can find that repo [here](https://github.com/pozm/gdke)
 ## Build
 clone the repo (`git clone https://github.com/pozm/godot_key_extract.git`) then open the visual studio workspace and then build either release or debug, probably doesn't matter.
 ## Example Output
